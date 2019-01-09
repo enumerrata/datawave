@@ -1,22 +1,16 @@
 package datawave.query.jexl.functions;
 
+import com.google.common.collect.Sets;
+import datawave.query.attributes.ValueTuple;
+import org.apache.log4j.Logger;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Multimap;
-import datawave.query.attributes.ValueTuple;
-
-import org.apache.log4j.Logger;
-
-import com.google.common.collect.Sets;
 
 /**
  * NOTE: The JexlFunctionArgumentDescriptorFactory is implemented by GroupingRequiredFilterFunctionsDescriptor. This is kept as a separate class to reduce
@@ -66,6 +60,7 @@ public class GroupingRequiredFilterFunctions {
             for (int i = 2; i < args.length; i++) {
                 
                 Object fieldValue3;
+                boolean tailHasMatch = false;
                 if (args[i] instanceof Iterable) {
                     for (Object fv : (Iterable) args[i]) {
                         String fieldName = ValueTuple.getFieldName(fv);
@@ -78,8 +73,12 @@ public class GroupingRequiredFilterFunctions {
                             if (!rightSideMatches.isEmpty()) {
                                 matches.addAll(rightSideMatches);
                                 matches.add(match); // add the left side unmodified match
+                                tailHasMatch = true;
                             }
                         }
+                    }
+                    if (!tailHasMatch) {
+                        groups.remove(tail);
                     }
                 } else if (args[i] instanceof ValueTuple) {
                     Object fv = args[i];
@@ -93,9 +92,12 @@ public class GroupingRequiredFilterFunctions {
                         if (!rightSideMatches.isEmpty()) {
                             matches.addAll(rightSideMatches);
                             matches.add(match); // add the left side unmodified match
+                            tailHasMatch = true;
                         }
                     }
-                    
+                    if (!tailHasMatch) {
+                        groups.remove(tail);
+                    }
                 }
             }
         }
@@ -107,7 +109,9 @@ public class GroupingRequiredFilterFunctions {
             matches.clear();
             groups.clear();
         }
-        log.debug("getGroupsForMatchesInGroup(" + Arrays.toString(args) + ") returning " + groups);
+        if (log.isTraceEnabled()) {
+            log.trace("getGroupsForMatchesInGroup(" + Arrays.toString(args) + ") returning " + groups);
+        }
         return groups;
         
     }
@@ -126,8 +130,8 @@ public class GroupingRequiredFilterFunctions {
             Object lastArgument = args[args.length - 1];
             positionFromRight = Integer.parseInt(lastArgument.toString());
         }
-        Collection<ValueTuple> leftSideMatches = Collections.emptySet();
-        Collection<ValueTuple> matches = Sets.newHashSet();
+        Collection<ValueTuple> leftSideMatches;
+        Collection<ValueTuple> matches = new HashSet<>();
         Object fieldValue1 = args[0];
         String regex = args[1].toString();
         if (fieldValue1 instanceof Iterable) {
@@ -147,7 +151,7 @@ public class GroupingRequiredFilterFunctions {
                 Object fieldValue3 = args[i];
                 if (args[i] instanceof Iterable) {
                     for (Object fv : (Iterable) args[i]) {
-                        String fieldName = (String) ValueTuple.getFieldName(fv);
+                        String fieldName = ValueTuple.getFieldName(fv);
                         if (fieldName.endsWith(tail)) {
                             fieldValue3 = fv;
                             regex = args[i + 1].toString();
@@ -193,7 +197,9 @@ public class GroupingRequiredFilterFunctions {
      * @return
      */
     public static Collection<?> matchesInGroupLeft(Object... args) {
-        log.trace("matchesInGroupLeft(" + Arrays.asList(args) + ")");
+        if (log.isTraceEnabled()) {
+            log.trace("matchesInGroupLeft(" + Arrays.asList(args) + ")");
+        }
         // positionFrom is either '0', or it is the integer value of the last argument
         // when the argumentCount is odd
         int positionFromLeft = 0;
@@ -211,7 +217,9 @@ public class GroupingRequiredFilterFunctions {
         } else {
             firstMatches = EvaluationPhaseFilterFunctions.getAllMatches(fieldValue1, regex);
         }
-        log.trace("firstMatches = " + firstMatches);
+        if (log.isTraceEnabled()) {
+            log.trace("firstMatches = " + firstMatches);
+        }
         for (ValueTuple match : firstMatches) {
             String matchFieldName = ValueTuple.getFieldName(match);
             // my firstMatches will be a collection that looks like [NAME.grandparent_0.parent_0.child_0:SANTINO]
@@ -238,7 +246,9 @@ public class GroupingRequiredFilterFunctions {
                         // look for a match on FREDO
                         String theNextMatch = EvaluationPhaseFilterFunctions.getMatchToLeftOfPeriod(fieldName, positionFromLeft);
                         if (theNextMatch != null && theNextMatch.equals(theFirstMatch)) {
-                            log.trace("\tfirst match equals the second: " + theFirstMatch + " == " + theNextMatch);
+                            if (log.isTraceEnabled()) {
+                                log.trace("\tfirst match equals the second: " + theFirstMatch + " == " + theNextMatch);
+                            }
                             matches.addAll(EvaluationPhaseFilterFunctions.includeRegex(fv, regex));
                             matches.add(match);
                         }
@@ -256,7 +266,9 @@ public class GroupingRequiredFilterFunctions {
                     // look for a match on FREDO
                     String theNextMatch = EvaluationPhaseFilterFunctions.getMatchToLeftOfPeriod(fieldName, positionFromLeft);
                     if (theNextMatch != null && theNextMatch.equals(theFirstMatch)) {
-                        log.trace("\tfirst match equals the second: " + theFirstMatch + " == " + theNextMatch);
+                        if (log.isTraceEnabled()) {
+                            log.trace("\tfirst match equals the second: " + theFirstMatch + " == " + theNextMatch);
+                        }
                         matches.addAll(EvaluationPhaseFilterFunctions.includeRegex(fv, regex));
                         matches.add(match);
                     }
@@ -270,7 +282,9 @@ public class GroupingRequiredFilterFunctions {
         if (matches.size() < args.length / 2) { // truncated in case args.length was odd
             matches.clear();
         }
-        log.trace("returning matches:" + matches);
+        if (log.isTraceEnabled()) {
+            log.trace("returning matches:" + matches);
+        }
         return Collections.unmodifiableCollection(matches);
     }
     
@@ -283,7 +297,7 @@ public class GroupingRequiredFilterFunctions {
             }
             iterableFields.add((Iterable<?>) field);
         }
-        return atomValuesMatch(iterableFields);
+        return atomValuesMatch(iterableFields.toArray(new Iterable[iterableFields.size()]));
     }
     
     /**
@@ -293,40 +307,37 @@ public class GroupingRequiredFilterFunctions {
      * @param fields
      * @return a collection of matches
      */
-    public static Collection<ValueTuple> atomValuesMatch(List<Iterable<?>> fields) {
+    public static Collection<ValueTuple> atomValuesMatch(Iterable<?>... fields) {
         Set<ValueTuple> matches = Sets.newHashSet();
-        if (fields.contains(null)) {
+        if (fields.length == 0 || Arrays.asList(fields).contains(null)) {
             return matches;
         }
-        Multimap<String,Object> tuples = HashMultimap.create();
-        HashMap<String,String> values = null;
-        for (Iterable<?> field : fields) {
-            HashMap<String,String> matchedValues = new HashMap<>();
-            for (Object fieldValue : field) {
-                String group = ValueTuple.getFieldName(fieldValue);
-                if (group.indexOf(".") != -1) {
-                    group = group.substring(group.lastIndexOf("."));
-                } else {
-                    group = "";
-                }
-                tuples.put(group, fieldValue);
-                String value = ValueTuple.getNormalizedStringValue(fieldValue);
-                if (values == null || value.equals(values.get(group))) {
-                    matchedValues.put(group, value);
-                }
+        // save off the first member iterable to use its values as the regexen
+        Iterable<?> firstFields = fields[0];
+        Set<String> normalizedFirstValues = new HashSet<>();
+        for (Object field : firstFields) {
+            normalizedFirstValues.add(ValueTuple.getNormalizedStringValue(field));
+        }
+        for (String regex : normalizedFirstValues) {
+            List<Object> argsList = new ArrayList();
+            for (int i = 0; i < fields.length; i++) {
+                Iterable<?> nextFields = fields[i];
+                argsList.add(nextFields);
+                argsList.add(regex);
             }
-            values = matchedValues;
-            if (values.isEmpty()) {
-                break;
+            if (log.isTraceEnabled()) {
+                log.trace("argsList:" + argsList);
             }
+            Collection<ValueTuple> migMatches = (Collection<ValueTuple>) matchesInGroup(argsList.toArray());
+            if (log.isTraceEnabled()) {
+                log.trace("migMatches:" + migMatches);
+            }
+            matches.addAll(migMatches);
         }
         
-        for (String matchingGroup : values.keySet()) {
-            for (Object fieldValue : tuples.get(matchingGroup)) {
-                matches.add(EvaluationPhaseFilterFunctions.getHitTerm(fieldValue));
-            }
+        if (log.isTraceEnabled()) {
+            log.trace("matches:" + matches);
         }
-        
         return matches;
     }
 }
