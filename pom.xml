@@ -16,6 +16,8 @@
     </licenses>
     <modules>
         <!-- TODO: Remove this when the first version of accumulo-utils is released -->
+        <module>services/accumulo-api</module>
+        <!-- TODO: Remove this when the first version of accumulo-utils is released -->
         <module>services/accumulo-utils</module>
         <!-- TODO: Remove this when the first version of base-rest-responses is released -->
         <module>services/base-rest-responses</module>
@@ -81,6 +83,7 @@
         <version.log4j>1.2.16</version.log4j>
         <version.log4j-extras>1.0</version.log4j-extras>
         <version.lucene>7.5.0</version.lucene>
+        <version.microservice.accumulo-api>1.0-SNAPSHOT</version.microservice.accumulo-api>
         <version.microservice.accumulo-utils>1.0-SNAPSHOT</version.microservice.accumulo-utils>
         <version.microservice.audit-api>1.4</version.microservice.audit-api>
         <version.microservice.authorization-api>1.3</version.microservice.authorization-api>
@@ -285,6 +288,11 @@
                         <artifactId>*</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>gov.nsa.datawave.microservice</groupId>
+                <artifactId>accumulo-api</artifactId>
+                <version>${version.microservice.accumulo-api}</version>
             </dependency>
             <dependency>
                 <groupId>gov.nsa.datawave.microservice</groupId>
