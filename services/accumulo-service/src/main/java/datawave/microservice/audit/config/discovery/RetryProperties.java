@@ -55,5 +55,4 @@ public class RetryProperties {
     public void setMaxAttempts(int maxAttempts) {
         this.maxAttempts = maxAttempts;
     }
-    
 }

@@ -1,5 +1,8 @@
 package datawave.microservice.accumulo.lookup;
 
+import datawave.microservice.authorization.user.ProxiedUserDetails;
+import datawave.security.authorization.DatawaveUser;
+import datawave.security.authorization.SubjectIssuerDNPair;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Connector;
@@ -7,13 +10,27 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.ColumnVisibility;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
+import static datawave.security.authorization.DatawaveUser.UserType.USER;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class TestUtils {
     
+    public static final SubjectIssuerDNPair USER_DN = SubjectIssuerDNPair.of("userDn", "issuerDn");
+    
+    /**
+     * Initializes a new table having the specified name with a static dataset for testing. Note that the data here is coupled to audit settings in
+     * test/resources/config/application.yml, and coupled to most assertions within tests in the current package
+     *
+     * @param connector
+     * @param tableName
+     * @throws Exception
+     */
     public static void setupTestTable(Connector connector, String tableName) throws Exception {
         if (connector.tableOperations().exists(tableName))
             connector.tableOperations().delete(tableName);
@@ -44,5 +61,22 @@ public class TestUtils {
             bw.addMutation(m);
         }
         bw.close();
+    }
+    
+    /**
+     * Build ProxiedUserDetails instance with the specified user roles and auths
+     */
+    public static ProxiedUserDetails userDetails(Collection<String> assignedRoles, Collection<String> assignedAuths) {
+        DatawaveUser dwUser = new DatawaveUser(USER_DN, USER, assignedAuths, assignedRoles, null, System.currentTimeMillis());
+        return new ProxiedUserDetails(Collections.singleton(dwUser), dwUser.getCreationTime());
+    }
+    
+    /**
+     * Build URL querystring from the specified params
+     */
+    public static String queryString(String... params) {
+        StringBuilder sb = new StringBuilder();
+        Arrays.stream(params).forEach(s -> sb.append(s).append("&"));
+        return sb.toString();
     }
 }

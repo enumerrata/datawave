@@ -61,7 +61,6 @@ public class LookupService {
     
     private enum Encoding {
         none, base64;
-        
     }
     
     public interface Parameter {
@@ -75,7 +74,6 @@ public class LookupService {
         String BEGIN_ENTRY = "beginEntry";
         String USE_AUTHS = "useAuthorizations";
         String END_ENTRY = "endEntry";
-        
     }
     
     @Resource(name = "auditLookupSecurityMarking")
@@ -330,13 +328,13 @@ public class LookupService {
     /**
      * Request and builder extensions for lookup-specific audits
      */
-    private final static class AuditRequest extends AuditClient.Request {
+    private static class AuditRequest extends AuditClient.Request {
         
         private AuditRequest(Builder b) {
             super(b);
         }
         
-        private static final class Builder extends AuditClient.Request.Builder {
+        private static class Builder extends AuditClient.Request.Builder {
             
             private String table;
             private String row;

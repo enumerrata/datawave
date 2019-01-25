@@ -61,7 +61,6 @@ import static org.junit.Assert.fail;
 @ContextConfiguration(classes = LookupServiceAuditDisabledTest.TestConfiguration.class)
 @ActiveProfiles({"LookupServiceAuditDisabledTest", "lookup-with-audit-disabled"})
 public class LookupServiceAuditDisabledTest {
-    private static final SubjectIssuerDNPair DN = SubjectIssuerDNPair.of("userDn", "issuerDn");
     
     public static final String TEST_TABLE_NAME = "test";
     
@@ -85,7 +84,7 @@ public class LookupServiceAuditDisabledTest {
     
     @Before
     public void setup() throws Exception {
-        defaultUserDetails = userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I"));
+        defaultUserDetails = TestUtils.userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I"));
         jwtRestTemplate = restTemplateBuilder.build(JWTRestTemplate.class);
         objectMapperSetup();
         TestUtils.setupTestTable(connector, TEST_TABLE_NAME);
@@ -115,7 +114,7 @@ public class LookupServiceAuditDisabledTest {
     @Test
     public void testLookupAllRowsAndVerifyResults() throws Exception {
         
-        String queryString = queryString("useAuthorizations=A,C,E,G,I", "columnVisibility=foo");
+        String queryString = TestUtils.queryString("useAuthorizations=A,C,E,G,I", "columnVisibility=foo");
         
         for (String rowid : Arrays.asList("row1", "row2", "row3")) {
             LookupResponse response = doLookup(defaultUserDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/" + rowid, queryString);
@@ -148,7 +147,7 @@ public class LookupServiceAuditDisabledTest {
     public void testLookupWithColFamAndColQual() throws Exception {
         
         //@formatter:off
-        String queryString = queryString(
+        String queryString = TestUtils.queryString(
             "useAuthorizations=B",
             "columnVisibility=foo",
             LookupService.Parameter.CF + "=cf2",
@@ -166,7 +165,7 @@ public class LookupServiceAuditDisabledTest {
     public void testLookupWithBase64Params() throws Exception {
         
         //@formatter:off
-        String queryString = queryString(
+        String queryString = TestUtils.queryString(
             "useAuthorizations=B",
             "columnVisibility=foo",
             LookupService.Parameter.CF + "=" + Base64.encodeBase64URLSafeString("cf2".getBytes()),
@@ -185,7 +184,7 @@ public class LookupServiceAuditDisabledTest {
     public void testLookupBeginEndSubset() throws Exception {
         
         //@formatter:off
-        String queryString = queryString(
+        String queryString = TestUtils.queryString(
             "useAuthorizations=A,B,C,D,E,F,G,H,I",
             "columnVisibility=foo",
             LookupService.Parameter.CF + "=cf2",
@@ -204,7 +203,7 @@ public class LookupServiceAuditDisabledTest {
     public void testErrorOnBeginGreaterThanEnd() throws Exception {
         
         //@formatter:off
-        String queryString = queryString(
+        String queryString = TestUtils.queryString(
             "useAuthorizations=A,B,C,D,E,F,G,H,I",
             "columnVisibility=foo",
             LookupService.Parameter.CF + "=cf2",
@@ -227,7 +226,7 @@ public class LookupServiceAuditDisabledTest {
     public void testLookupWithBeginEqualToEnd() throws Exception {
         
         //@formatter:off
-        String queryString = queryString(
+        String queryString = TestUtils.queryString(
             "useAuthorizations=A,B,C,D,E,F,G,H,I",
             "columnVisibility=foo",
             LookupService.Parameter.CF + "=cf2",
@@ -246,7 +245,7 @@ public class LookupServiceAuditDisabledTest {
         
         // Query with useAuthorizations param with all assigned auths requested. Should get all 12 entries returned
         
-        String queryString = queryString("useAuthorizations=A,B,C,D,E,F,G,H,I", "columnVisibility=foo");
+        String queryString = TestUtils.queryString("useAuthorizations=A,B,C,D,E,F,G,H,I", "columnVisibility=foo");
         for (String row : Arrays.asList("row1", "row2", "row3")) {
             doLookup(defaultUserDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/" + row, queryString);
         }
@@ -255,15 +254,16 @@ public class LookupServiceAuditDisabledTest {
         // (same as above)
         
         for (String row : Arrays.asList("row1", "row2", "row3")) {
-            queryString = queryString("columnVisibility=foo");
+            queryString = TestUtils.queryString("columnVisibility=foo");
             doLookup(defaultUserDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/" + row, queryString);
         }
     }
     
     @Test
     public void testErrorOnUserWithInsufficientRoles() {
-        ProxiedUserDetails userDetails = userDetails(Arrays.asList("ThisRoleIsNoGood", "IAmRoot"), Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I"));
-        String queryString = queryString("useAuthorizations=A,C,E,G,I", "columnVisibility=foo");
+        ProxiedUserDetails userDetails = TestUtils.userDetails(Arrays.asList("ThisRoleIsNoGood", "IAmRoot"),
+                        Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I"));
+        String queryString = TestUtils.queryString("useAuthorizations=A,C,E,G,I", "columnVisibility=foo");
         try {
             doLookup(userDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/row1", queryString);
             fail("This code should never be reached");
@@ -277,8 +277,8 @@ public class LookupServiceAuditDisabledTest {
     
     @Test
     public void testErrorOnUserWithInsufficientAuths() {
-        ProxiedUserDetails userDetails = userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "C"));
-        String queryString = queryString("useAuthorizations=A,C,E,G,I", "columnVisibility=foo");
+        ProxiedUserDetails userDetails = TestUtils.userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "C"));
+        String queryString = TestUtils.queryString("useAuthorizations=A,C,E,G,I", "columnVisibility=foo");
         try {
             doLookup(userDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/row2", queryString);
             fail("This code should never be reached");
@@ -292,8 +292,8 @@ public class LookupServiceAuditDisabledTest {
     
     @Test
     public void testErrorOnMissingColVizParam() {
-        ProxiedUserDetails userDetails = userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A"));
-        String queryString = queryString("NotColumnVisibility=foo");
+        ProxiedUserDetails userDetails = TestUtils.userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A"));
+        String queryString = TestUtils.queryString("NotColumnVisibility=foo");
         try {
             doLookup(userDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/row2", queryString);
             fail("This code should never be reached");
@@ -307,8 +307,8 @@ public class LookupServiceAuditDisabledTest {
     
     @Test
     public void testErrorOnTableDoesNotExist() {
-        ProxiedUserDetails userDetails = userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C"));
-        String queryString = queryString("useAuthorizations=A,B,C", "columnVisibility=foo");
+        ProxiedUserDetails userDetails = TestUtils.userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C"));
+        String queryString = TestUtils.queryString("useAuthorizations=A,B,C", "columnVisibility=foo");
         try {
             doLookup(userDetails, "/accumulo/v1/lookup/THIS_TABLE_DOES_NOT_EXIST/row2", queryString);
             fail("This code should never be reached");
@@ -322,8 +322,8 @@ public class LookupServiceAuditDisabledTest {
     
     @Test
     public void testLookupRowDoesNotExist() throws Exception {
-        ProxiedUserDetails userDetails = userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C"));
-        String queryString = queryString("useAuthorizations=A,B,C", "columnVisibility=foo");
+        ProxiedUserDetails userDetails = TestUtils.userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C"));
+        String queryString = TestUtils.queryString("useAuthorizations=A,B,C", "columnVisibility=foo");
         LookupResponse lr = doLookup(userDetails, "/accumulo/v1/lookup/" + TEST_TABLE_NAME + "/ThisRowDoesNotExist", queryString);
         assertEquals("Test should have returned response with zero entries", 0, lr.getEntries().size());
     }
@@ -336,23 +336,6 @@ public class LookupServiceAuditDisabledTest {
         ResponseEntity<String> entity = jwtRestTemplate.exchange(authUser, HttpMethod.GET, uri, String.class);
         assertEquals("Lookup request to " + uri + " did not return 200 status", HttpStatus.OK, entity.getStatusCode());
         return objectMapper.readValue(entity.getBody(), LookupResponse.class);
-    }
-    
-    /**
-     * Build ProxiedUserDetails with DatawaveUser instance having the specified roles and auths
-     */
-    private ProxiedUserDetails userDetails(Collection<String> assignedRoles, Collection<String> assignedAuths) {
-        DatawaveUser dwUser = new DatawaveUser(DN, USER, assignedAuths, assignedRoles, null, System.currentTimeMillis());
-        return new ProxiedUserDetails(Collections.singleton(dwUser), dwUser.getCreationTime());
-    }
-    
-    /**
-     * Build URL querystring from the specified params
-     */
-    private String queryString(String... params) {
-        StringBuilder sb = new StringBuilder();
-        Arrays.stream(params).forEach(s -> sb.append(s).append("&"));
-        return sb.toString();
     }
     
     @Configuration

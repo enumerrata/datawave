@@ -61,7 +61,6 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 @ContextConfiguration(classes = LookupServiceAuditEnabledTest.TestConfiguration.class)
 @ActiveProfiles({"LookupServiceAuditEnabledTest", "lookup-with-audit-enabled"})
 public class LookupServiceAuditEnabledTest {
-    private static final SubjectIssuerDNPair DN = SubjectIssuerDNPair.of("userDn", "issuerDn");
     
     private static final String TEST_TABLE_NAME = "test";
     
@@ -90,7 +89,7 @@ public class LookupServiceAuditEnabledTest {
     
     @Before
     public void setup() throws Exception {
-        defaultUserDetails = userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I"));
+        defaultUserDetails = TestUtils.userDetails(Collections.singleton("AuthorizedUser"), Arrays.asList("A", "B", "C", "D", "E", "F", "G", "H", "I"));
         jwtRestTemplate = restTemplateBuilder.build(JWTRestTemplate.class);
         TestUtils.setupTestTable(connector, TEST_TABLE_NAME);
         setupMockAuditServer();
@@ -124,13 +123,13 @@ public class LookupServiceAuditEnabledTest {
     public void testLookupAndVerifyAuditTypeNONE() throws Exception {
         // Create new table, which will have no audit rule defined and thus default to
         // AuditType.NONE, i.e., accumulo.lookup.audit.defaultColumnVisibility = NONE.
-        // AuditClient avoids REST calls to the audit server when audit type is NONE
+        // AuditClient should avoid REST calls to the audit server when audit type is NONE
         
         String tableName = "tableWithNoAuditRule";
         TestUtils.setupTestTable(connector, tableName);
         
-        // So, the strategy here is simply to setup the URI expectations for 'ACTIVE', 'PASSIVE'
-        // and 'NONE' audit requests, then test to ensure that 0 requests actually occurred
+        // So, the strategy here is simply to setup URI expectations for successful 'ACTIVE',
+        // 'PASSIVE' and 'NONE' audit requests, and then ensure that 0 requests actually occurred
         
         // Verify zero 'ACTIVE' audit requests
         
@@ -139,7 +138,7 @@ public class LookupServiceAuditEnabledTest {
             testLookupAndVerifyAuditUriWithSuccess(tableName, "row3", Auditor.AuditType.ACTIVE);
             fail("This code should never be reached");
         } catch (AssertionError ae) {
-            assertTrue("Unexpected exception message", ae.getMessage().contains("0 request(s) executed"));
+            assertTrue("Unexpected exception message", ae.getMessage().contains("\n0 request(s) executed"));
         }
         
         // Verify zero 'PASSIVE' audit requests
@@ -150,7 +149,7 @@ public class LookupServiceAuditEnabledTest {
             testLookupAndVerifyAuditUriWithSuccess(tableName, "row3", Auditor.AuditType.PASSIVE);
             fail("This code should never be reached");
         } catch (AssertionError ae) {
-            assertTrue("Unexpected exception message", ae.getMessage().contains("0 request(s) executed"));
+            assertTrue("Unexpected exception message", ae.getMessage().contains("\n0 request(s) executed"));
         }
         
         // Verify zero 'NONE' audit requests
@@ -161,7 +160,7 @@ public class LookupServiceAuditEnabledTest {
             testLookupAndVerifyAuditUriWithSuccess(tableName, "row3", Auditor.AuditType.NONE);
             fail("This code should never be reached");
         } catch (AssertionError ae) {
-            assertTrue("Unexpected exception message", ae.getMessage().contains("0 request(s) executed"));
+            assertTrue("Unexpected exception message", ae.getMessage().contains("\n0 request(s) executed"));
         }
     }
     
@@ -174,7 +173,8 @@ public class LookupServiceAuditEnabledTest {
         String expectedAuditColVizString = "auditColumnVisibility=foo";
         
         //@formatter:off
-        String expectedAuditUri = String.format(AUDIT_BASE_URI + EXPECTED_AUDIT_QUERYSTRING_FORMAT,
+        String expectedAuditUri = String.format(
+            AUDIT_BASE_URI + EXPECTED_AUDIT_QUERYSTRING_FORMAT,
                 queryUseAuths,
                 queryColumnViz,
                 targetTable,
@@ -185,7 +185,7 @@ public class LookupServiceAuditEnabledTest {
         
         mockServer.expect(requestTo(expectedAuditUri)).andRespond(withSuccess());
         
-        String queryString = queryString(queryUseAuths, queryColumnViz);
+        String queryString = TestUtils.queryString(queryUseAuths, queryColumnViz);
         doLookup(defaultUserDetails, "/accumulo/v1/lookup/" + targetTable + "/" + targetRow, queryString);
         
         mockServer.verify();
@@ -208,23 +208,6 @@ public class LookupServiceAuditEnabledTest {
         ResponseEntity<String> entity = jwtRestTemplate.exchange(authUser, HttpMethod.GET, uri, String.class);
         assertEquals("Lookup request to " + uri + " did not return 200 status", HttpStatus.OK, entity.getStatusCode());
         return entity;
-    }
-    
-    /**
-     * Build ProxiedUserDetails instance with the specified user roles and auths
-     */
-    private ProxiedUserDetails userDetails(Collection<String> assignedRoles, Collection<String> assignedAuths) {
-        DatawaveUser dwUser = new DatawaveUser(DN, USER, assignedAuths, assignedRoles, null, System.currentTimeMillis());
-        return new ProxiedUserDetails(Collections.singleton(dwUser), dwUser.getCreationTime());
-    }
-    
-    /**
-     * Build URL querystring from the specified params
-     */
-    private String queryString(String... params) {
-        StringBuilder sb = new StringBuilder();
-        Arrays.stream(params).forEach(s -> sb.append(s).append("&"));
-        return sb.toString();
     }
     
     @Configuration
