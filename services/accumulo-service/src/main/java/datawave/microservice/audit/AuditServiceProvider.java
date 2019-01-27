@@ -19,10 +19,8 @@ public class AuditServiceProvider {
     
     private static Logger logger = LoggerFactory.getLogger(AuditServiceProvider.class);
     
-    protected AuditServiceProperties properties;
-    protected DiscoveryClient discoveryClient;
-    
-    private AuditServiceProvider() {}
+    protected final AuditServiceProperties properties;
+    protected final DiscoveryClient discoveryClient;
     
     public AuditServiceProvider(AuditServiceProperties properties) {
         this(properties, null);
@@ -52,9 +50,8 @@ public class AuditServiceProvider {
         Preconditions.checkState(!Strings.isNullOrEmpty(serviceId), "service id must not be null/empty");
         Preconditions.checkNotNull(this.discoveryClient, "discovery client must not be null");
         
-        if (logger.isDebugEnabled()) {
-            logger.debug("Locating audit server by id (" + serviceId + ") via discovery");
-        }
+        logger.debug("Locating audit server by id ({}) via discovery", serviceId);
+        
         List<ServiceInstance> instances = this.discoveryClient.getInstances(serviceId);
         if (instances.isEmpty()) {
             throw new IllegalStateException("No instances found of audit service (id: " + serviceId + ")");
@@ -63,16 +60,14 @@ public class AuditServiceProvider {
             logger.info("More than one audit service is available, but I only know how to select the first in the list");
         }
         ServiceInstance instance = instances.get(0);
-        if (logger.isDebugEnabled()) {
-            logger.debug("Located audit service (id: " + serviceId + ") via discovery. URI: " + instance.getUri());
-        }
+        
+        logger.debug("Located audit service (id: {}) via discovery. URI: {}", serviceId, instance.getUri());
+        
         return instance;
     }
     
     protected ServiceInstance getDefaultServiceInstance() {
-        if (logger.isDebugEnabled()) {
-            logger.debug("Returning default ServiceInstance for auditing: " + properties.getUri());
-        }
+        logger.debug("Returning default ServiceInstance for auditing: {}", properties.getUri());
         final URI uri = URI.create(properties.getUri());
         return new DefaultServiceInstance(properties.getServiceId(), uri.getHost(), uri.getPort(), uri.getScheme().equals("https"));
     }

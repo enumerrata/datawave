@@ -59,8 +59,11 @@ audit:
 
 accumulo:
   lookup:
-    enabled: true
     numQueryThreads: 1
+
+logging:
+  level:
+    datawave.microservice.accumulo.lookup: FATAL
 
 ---
 
@@ -68,12 +71,10 @@ spring:
   profiles: lookup-with-audit-enabled
 
 audit:
-  enabled: true
   uri: '${AUDIT_SERVER_URL:http://localhost:11111/audit}'
 
 accumulo:
   lookup:
-    enabled: true
     numQueryThreads: 1
     audit:
       defaultColumnVisibility: 'BAR'

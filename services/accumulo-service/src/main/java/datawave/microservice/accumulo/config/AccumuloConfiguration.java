@@ -26,15 +26,16 @@ public class AccumuloConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public Connector connector(AccumuloProperties accumuloProperties) {
-        if (log.isDebugEnabled()) {
-            log.debug("Creating a new accumulo connector for " + accumuloProperties.getInstanceName());
-        }
+        
+        log.debug("Creating a new accumulo connector for {}", accumuloProperties.getInstanceName());
+        
         // TODO: Perhaps enable connection pooling and limit total Accumulo connections?
         //@formatter:off
         Map<String,String> conf = ImmutableMap.of(
             "instance.name", accumuloProperties.getInstanceName(),
             "instance.zookeeper.host", accumuloProperties.getZookeepers());
         //@formatter:on
+        
         final Instance instance = new ZooKeeperInstance(ClientConfiguration.fromMap(conf));
         Connector connector = null;
         try {

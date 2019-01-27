@@ -27,13 +27,17 @@ import static datawave.microservice.accumulo.lookup.LookupService.ALLOWED_ENCODI
  * REST controller for Accumulo lookup service
  */
 @RestController
-@ConditionalOnProperty(name = "accumulo.lookup.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "accumulo.lookup.enabled", havingValue = "true", matchIfMissing = true)
 @RolesAllowed({"AuthorizedUser", "AuthorizedServer", "InternalUser", "Administrator"})
 @RequestMapping(path = "/v1", produces = {MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_XML_VALUE})
 public class LookupController {
     
+    private final LookupService lookupService;
+    
     @Autowired
-    private LookupService lookupService;
+    public LookupController(LookupService lookupService) {
+        this.lookupService = lookupService;
+    }
     
     //@formatter:off
     @ApiOperation(value = "Performs an Accumulo table scan using the given parameters")

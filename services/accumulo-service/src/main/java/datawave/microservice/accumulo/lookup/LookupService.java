@@ -32,11 +32,11 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMap;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -52,7 +52,7 @@ import java.util.Set;
  * requests via autowired {@link AuditClient}
  */
 @Service
-@ConditionalOnProperty(name = "accumulo.lookup.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "accumulo.lookup.enabled", havingValue = "true", matchIfMissing = true)
 public class LookupService {
     
     public static final String ALLOWED_ENCODING = "[base64, none]";
@@ -76,26 +76,40 @@ public class LookupService {
         String END_ENTRY = "endEntry";
     }
     
-    @Resource(name = "auditLookupSecurityMarking")
-    private SecurityMarking auditSecurityMarking;
+    private final SecurityMarking auditSecurityMarking;
+    private final MarkingFunctions markingFunctions;
+    private final Connector connection;
+    private final LookupAuditProperties lookupAuditProperties;
+    private final LookupProperties lookupProperties;
+    private final UserAuthFunctions userAuthFunctions;
     
-    @Autowired
-    private MarkingFunctions markingFunctions;
-    
-    @Autowired
-    private Connector connection;
-    
-    @Autowired(required = false)
+    // Optional, thus using setter injection
     private AuditClient auditor;
     
+    //@formatter:off
     @Autowired
-    private LookupAuditProperties lookupAuditProperties;
+    public LookupService(
+        @Qualifier("auditLookupSecurityMarking")
+        SecurityMarking auditSecurityMarking,
+        MarkingFunctions markingFunctions,
+        Connector connection,
+        LookupAuditProperties lookupAuditProperties,
+        LookupProperties lookupProperties,
+        UserAuthFunctions userAuthFunctions) {
+            this.auditSecurityMarking = auditSecurityMarking;
+            this.markingFunctions = markingFunctions;
+            this.connection = connection;
+            this.lookupAuditProperties = lookupAuditProperties;
+            this.lookupProperties = lookupProperties;
+            this.userAuthFunctions = userAuthFunctions;
+            this.auditor = null;
+    }
+    //@formatter:on
     
-    @Autowired
-    private LookupProperties lookupProperties;
-    
-    @Autowired
-    private UserAuthFunctions userAuthFunctions;
+    @Autowired(required = false)
+    public void setAuditor(AuditClient auditor) {
+        this.auditor = auditor;
+    }
     
     /**
      * Look up one or more entries in Accumulo by table, row, and optionally colFam and colQual

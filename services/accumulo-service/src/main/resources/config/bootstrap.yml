@@ -13,10 +13,6 @@ spring:
         max-attempts: 60
       uri: '${CONFIG_SERVER_URL:http://configuration:8888/configserver}'
 
-# Enable auditing by default
-audit:
-  enabled: true
-
 ---
 
 # For the dev profile, check localhost for the config server by default

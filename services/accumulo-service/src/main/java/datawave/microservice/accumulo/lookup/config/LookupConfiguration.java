@@ -8,14 +8,16 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.context.annotation.RequestScope;
 
 @Configuration
 @EnableConfigurationProperties({LookupProperties.class, LookupAuditProperties.class})
-@ConditionalOnProperty(name = "accumulo.lookup.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "accumulo.lookup.enabled", havingValue = "true", matchIfMissing = true)
 public class LookupConfiguration {
     
     @Bean
     @RefreshScope
+    @RequestScope
     @ConditionalOnMissingBean
     public SecurityMarking auditLookupSecurityMarking(LookupAuditProperties lookupAuditProperties) {
         ColumnVisibilitySecurityMarking auditCVSM = new ColumnVisibilitySecurityMarking();

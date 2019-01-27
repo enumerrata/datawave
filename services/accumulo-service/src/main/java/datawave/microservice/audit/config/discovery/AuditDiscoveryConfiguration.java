@@ -36,16 +36,23 @@ public class AuditDiscoveryConfiguration {
     
     private static Logger logger = LoggerFactory.getLogger(AuditDiscoveryConfiguration.class);
     
-    @Autowired
-    private AuditServiceProperties serviceProperties;
+    private final AuditServiceProperties serviceProperties;
+    private final AuditDiscoveryProperties discoveryProperties;
+    private final AuditServiceProvider instanceProvider;
+    private final HeartbeatMonitor monitor;
     
+    //@formatter:off
     @Autowired
-    private AuditDiscoveryProperties discoveryProperties;
-    
-    @Autowired
-    private AuditServiceProvider instanceProvider;
-    
-    private HeartbeatMonitor monitor = new HeartbeatMonitor();
+    public AuditDiscoveryConfiguration(
+            AuditServiceProperties serviceProperties,
+            AuditDiscoveryProperties discoveryProperties,
+            AuditServiceProvider instanceProvider) {
+        this.serviceProperties = serviceProperties;
+        this.discoveryProperties = discoveryProperties;
+        this.instanceProvider = instanceProvider;
+        this.monitor = new HeartbeatMonitor();
+    }
+    //@formatter:on
     
     @Bean
     public AuditDiscoveryProperties auditDiscoveryProperties() {
@@ -70,16 +77,15 @@ public class AuditDiscoveryConfiguration {
     }
     
     private void refresh() {
+        logger.debug("Refreshing audit service instance");
         try {
             ServiceInstance si = instanceProvider.getServiceInstance();
-            if (logger.isDebugEnabled()) {
-                logger.debug("Audit server located. URI [" + si.getUri() + "]");
-            }
+            logger.debug("Audit server located. URI [{}]", si.getUri());
         } catch (Exception e) {
             if (discoveryProperties.isFailFast()) {
                 throw e;
             } else {
-                logger.warn("Could not locate audit service via discovery [serviceId: " + serviceProperties.getServiceId() + "]", e);
+                logger.warn("Audit service discovery failed [serviceId: " + serviceProperties.getServiceId() + "]", e);
             }
         }
     }

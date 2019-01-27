@@ -5,7 +5,6 @@ import datawave.marking.SecurityMarking;
 import datawave.microservice.authorization.jwt.JWTRestTemplate;
 import datawave.microservice.authorization.user.ProxiedUserDetails;
 import datawave.security.authorization.DatawaveUser;
-import datawave.security.util.ProxiedEntityUtils;
 import datawave.webservice.common.audit.AuditParameters;
 import datawave.webservice.common.audit.Auditor;
 import datawave.webservice.common.audit.Auditor.AuditType;
@@ -24,8 +23,6 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.Collection;
-
 /**
  * Simple rest client for submitting requests to the audit service
  *
@@ -33,20 +30,20 @@ import java.util.Collection;
  * @see AuditServiceProvider
  */
 @Service
-@ConditionalOnProperty(name = "audit.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "audit.enabled", havingValue = "true", matchIfMissing = true)
 public class AuditClient {
     
     private static final String DEFAULT_REQUEST_PATH = "/v1/audit";
     
     private final Logger log = LoggerFactory.getLogger(this.getClass());
     
-    @Autowired
-    private AuditServiceProvider serviceProvider;
-    
+    private final AuditServiceProvider serviceProvider;
     private final JWTRestTemplate jwtRestTemplate;
     
-    public AuditClient(RestTemplateBuilder builder) {
+    @Autowired
+    public AuditClient(RestTemplateBuilder builder, AuditServiceProvider serviceProvider) {
         this.jwtRestTemplate = builder.build(JWTRestTemplate.class);
+        this.serviceProvider = serviceProvider;
     }
     
     public void submit(Request request) {
@@ -58,15 +55,11 @@ public class AuditClient {
         Preconditions.checkNotNull(request, "request cannot be null");
         Preconditions.checkNotNull(requestPath, "requestPath cannot be null");
         
-        if (log.isDebugEnabled()) {
-            log.debug("Received audit request: " + request.getAuditParameters().toString());
-        }
+        log.debug("Received audit request: {}", request.getAuditParameters());
         
         if (AuditType.NONE.equals(request.getAuditType())) {
             // Avoiding network resource waste in this case
-            if (log.isDebugEnabled()) {
-                log.debug("Received audit request, but AuditType was " + AuditType.NONE);
-            }
+            log.debug("Received audit request, but AuditType was {}", AuditType.NONE);
         } else {
             //@formatter:off
             ServiceInstance auditService = serviceProvider.getServiceInstance();
@@ -75,9 +68,7 @@ public class AuditClient {
                 .queryParams(request.getAuditParametersAsMap())
                 .build();
 
-            if (log.isDebugEnabled()) {
-                log.debug("Audit request URI: " + uri);
-            }
+            log.debug("Audit request URI: {}", uri);
 
             ResponseEntity<String> response = jwtRestTemplate.exchange(
                 request.userDetails, HttpMethod.POST, uri, String.class);
@@ -99,8 +90,6 @@ public class AuditClient {
     public static class Request {
         
         static final String INTERNAL_AUDIT_PARAM_PREFIX = "audit.";
-        
-        private final Logger log = LoggerFactory.getLogger(this.getClass());
         
         private AuditParameters auditParameters;
         private MultiValueMap<String,String> paramMap;

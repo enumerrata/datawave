@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnProperty(name = "audit.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "audit.enabled", havingValue = "true", matchIfMissing = true)
 @EnableConfigurationProperties(AuditServiceProperties.class)
 @AutoConfigureAfter({AuditDiscoveryConfiguration.class})
 public class AuditServiceConfiguration {
